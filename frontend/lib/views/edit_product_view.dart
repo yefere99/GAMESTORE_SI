@@ -1,7 +1,7 @@
-import 'dart:io' as io show File;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/api_service.dart';
 import '../models/product.dart';
 
@@ -15,9 +15,8 @@ class EditProductView extends StatefulWidget {
 
 class _EditProductViewState extends State<EditProductView> {
   final _formKey = GlobalKey<FormState>();
-  final _picker = ImagePicker();
 
-  XFile? imageFile;
+  PlatformFile? selectedFile;
 
   late String name;
   late String description;
@@ -40,9 +39,11 @@ class _EditProductViewState extends State<EditProductView> {
   }
 
   Future<void> _pickImage() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => imageFile = picked);
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null && result.files.isNotEmpty) {
+      setState(() {
+        selectedFile = result.files.first;
+      });
     }
   }
 
@@ -50,8 +51,8 @@ class _EditProductViewState extends State<EditProductView> {
     if (_formKey.currentState!.validate()) {
       try {
         String finalImageUrl = imageUrl;
-        if (imageFile != null) {
-          finalImageUrl = await ApiService.uploadImage(imageFile!);
+        if (selectedFile != null) {
+          finalImageUrl = await ApiService.uploadImage(selectedFile!);
         }
 
         final updated = Product(
@@ -116,10 +117,10 @@ class _EditProductViewState extends State<EditProductView> {
 
   @override
   Widget build(BuildContext context) {
-    final imagePreview = imageFile != null
+    final imagePreview = selectedFile != null
         ? kIsWeb
-            ? Image.network(imageFile!.path, height: 120)
-            : Image.file(io.File(imageFile!.path), height: 120)
+            ? Image.memory(selectedFile!.bytes!, height: 120)
+            : const Text("Vista previa no soportada fuera de Web")
         : Image.network(imageUrl, height: 120);
 
     return Scaffold(
