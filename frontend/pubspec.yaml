@@ -8,8 +8,8 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^0.13.6
-  #image_picker: ^1.0.4
-  #path_provider: ^2.1.2
+  image_picker: ^1.0.4
+  path_provider: ^2.1.2
   provider: ^6.1.1
   intl: ^0.18.1
   confetti: ^0.7.0
