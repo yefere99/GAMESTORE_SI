@@ -7,7 +7,10 @@ COPY frontend/pubspec.lock ./
 COPY frontend/lib ./lib
 COPY frontend/web ./web
 COPY frontend/assets ./assets
-RUN flutter pub get
+RUN ls -la && ls pubspec.yaml
+
+RUN flutter pub get --verbose
+
 RUN flutter build web
 
 # Etapa 2: Backend con Node.js
