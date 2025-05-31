@@ -1,92 +1,69 @@
-import 'dart:html' as html show File;
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:gamestore_frontend/services/api_service.dart';
-import 'package:gamestore_frontend/models/product.dart';
+import 'package:http/http.dart' as http;
+import '../config/env.dart';
 
 class AddProductView extends StatefulWidget {
-  const AddProductView({super.key});
-
   @override
-  State<AddProductView> createState() => _AddProductViewState();
+  _AddProductViewState createState() => _AddProductViewState();
 }
 
 class _AddProductViewState extends State<AddProductView> {
   final _formKey = GlobalKey<FormState>();
-  final _picker = ImagePicker();
-  XFile? imageFile;
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController priceController = TextEditingController();
+  final TextEditingController imageUrlController = TextEditingController();
+  final TextEditingController categoryController = TextEditingController();
 
   List<String> categories = [];
-  bool isLoadingCategories = true;
-
-  String name = '';
-  String description = '';
-  String category = '';
-  double price = 0;
-  int quantity = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    loadCategories();
   }
 
-  Future<void> _loadCategories() async {
+  Future<void> loadCategories() async {
     try {
-      final result = await ApiService.fetchCategories();
-      setState(() {
-        categories = result;
-        isLoadingCategories = false;
-      });
-    } catch (e) {
-      setState(() => isLoadingCategories = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cargar categorías: $e')),
-      );
-    }
-  }
-
-  Future<void> _pickImage() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => imageFile = picked);
-    }
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || imageFile == null || category.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Completa todos los campos e incluye una imagen')),
-      );
-      return;
-    }
-
-    try {
-      final imageUrl = await ApiService.uploadImage(imageFile!);
-
-      final product = Product(
-        id: '',
-        name: name,
-        description: description,
-        category: category,
-        price: price,
-        quantity: quantity,
-        imageUrl: imageUrl,
-      );
-
-      await ApiService.addProduct(product);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Producto añadido exitosamente')),
-        );
-        Navigator.pop(context);
+      final response = await http.get(Uri.parse('${apiUrl}/products/categories'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          categories = List<String>.from(data);
+        });
+      } else {
+        print('Error al cargar categorías: ${response.statusCode}');
       }
     } catch (e) {
-      if (mounted) {
+      print('Error al conectar: $e');
+    }
+  }
+
+  Future<void> submitProduct() async {
+    if (_formKey.currentState!.validate()) {
+      final product = {
+        'name': nameController.text,
+        'description': descriptionController.text,
+        'price': double.tryParse(priceController.text) ?? 0,
+        'imageUrl': imageUrlController.text,
+        'category': categoryController.text,
+      };
+
+      final response = await http.post(
+        Uri.parse('${apiUrl}/products'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(product),
+      );
+
+      if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e')),
+          SnackBar(content: Text('Producto agregado exitosamente')),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al agregar producto')),
         );
       }
     }
@@ -94,67 +71,53 @@ class _AddProductViewState extends State<AddProductView> {
 
   @override
   Widget build(BuildContext context) {
-    final imageWidget = imageFile != null
-        ? kIsWeb
-            ? Image.network(imageFile!.path, height: 150)
-            : Image.network(imageFile!.path, height: 150)
-        : const Text('No se ha seleccionado imagen');
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Agregar producto')),
+      appBar: AppBar(title: Text('Agregar Producto')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Nombre'),
-                validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-                onChanged: (v) => name = v,
+                controller: nameController,
+                decoration: InputDecoration(labelText: 'Nombre'),
+                validator: (value) => value == null || value.isEmpty ? 'Ingresa un nombre' : null,
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Descripción'),
-                validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-                onChanged: (v) => description = v,
+                controller: descriptionController,
+                decoration: InputDecoration(labelText: 'Descripción'),
+                validator: (value) => value == null || value.isEmpty ? 'Ingresa una descripción' : null,
               ),
-              isLoadingCategories
-                  ? const Center(child: CircularProgressIndicator())
-                  : DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: 'Categoría'),
-                      value: category.isNotEmpty ? category : null,
-                      items: categories
-                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                          .toList(),
-                      onChanged: (value) => setState(() => category = value ?? ''),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? 'Selecciona una categoría' : null,
-                    ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Precio'),
+                controller: priceController,
+                decoration: InputDecoration(labelText: 'Precio'),
                 keyboardType: TextInputType.number,
-                validator: (v) =>
-                    v == null || double.tryParse(v) == null ? 'Número inválido' : null,
-                onChanged: (v) => price = double.tryParse(v) ?? 0,
+                validator: (value) => value == null || value.isEmpty ? 'Ingresa un precio' : null,
               ),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Cantidad'),
-                keyboardType: TextInputType.number,
-                validator: (v) =>
-                    v == null || int.tryParse(v) == null ? 'Número entero requerido' : null,
-                onChanged: (v) => quantity = int.tryParse(v) ?? 0,
+                controller: imageUrlController,
+                decoration: InputDecoration(labelText: 'URL de la imagen'),
+                validator: (value) => value == null || value.isEmpty ? 'Ingresa una URL' : null,
               ),
-              const SizedBox(height: 10),
-              imageWidget,
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: _pickImage,
-                child: const Text('Seleccionar imagen'),
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: 'Categoría'),
+                value: categoryController.text.isNotEmpty ? categoryController.text : null,
+                items: categories.map((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  categoryController.text = value!;
+                },
+                validator: (value) => value == null || value.isEmpty ? 'Selecciona una categoría' : null,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _submit,
-                child: const Text('Guardar producto'),
+                onPressed: submitProduct,
+                child: Text('Guardar'),
               ),
             ],
           ),
