@@ -1,7 +1,7 @@
 # Etapa 1: construir Flutter Web
 FROM cirrusci/flutter:stable AS flutter_build
 WORKDIR /app/frontend
-COPY frontend/ .
+
 COPY frontend/pubspec.yaml ./
 COPY frontend/pubspec.lock ./
 COPY frontend/lib ./lib
