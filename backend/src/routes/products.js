@@ -16,13 +16,17 @@ const upload = multer({ storage });
 // Subir imagen
 router.post('/upload', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subió archivo' });
-  const url = `http://localhost:3000/uploads/${req.file.filename}`;
+  const url = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
   res.status(200).json({ imageUrl: url });
 });
 
 // Categorías válidas (para el formulario)
 router.get('/categories', (req, res) => {
-  res.json(['consolas', 'videojuegos', 'accesorios']);
+  res.json([
+    { id: 1, name: 'consolas' },
+    { id: 2, name: 'videojuegos' },
+    { id: 3, name: 'accesorios' }
+  ]);
 });
 
 // Añadir producto
