@@ -21,6 +21,10 @@ app.use('/uploads', express.static('uploads'));
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
+// Servir archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 
 // Conexión a MongoDB (el nombre 'mongo' es el del contenedor, NO lo cambies)
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/gamestore')
