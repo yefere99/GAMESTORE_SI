@@ -1,4 +1,3 @@
-# Etapa 1: instalar Flutter desde fuente (Flutter 3.22 compatible con Dart 3.2.0)
 FROM debian:bullseye-slim AS flutter_build
 
 RUN apt-get update && \
@@ -10,7 +9,6 @@ ENV PATH="/flutter/bin:/flutter/bin/cache/dart-sdk/bin:${PATH}"
 
 WORKDIR /app
 
-# Copiar el frontend por partes
 COPY frontend/pubspec.yaml ./pubspec.yaml
 COPY frontend/pubspec.lock ./pubspec.lock
 COPY frontend/lib ./lib
@@ -24,12 +22,17 @@ RUN flutter build web
 FROM node:18
 
 WORKDIR /app
+
+# Crear carpeta para las imágenes subidas
 RUN mkdir -p /app/backend/src/uploads
+
+# Copiar backend y el build del frontend en la carpeta public
 COPY backend/ ./backend
-COPY --from=flutter_build /app/build /app/backend/src/public
+COPY --from=flutter_build /app/build/web /app/backend/src/public
 
 WORKDIR /app/backend
 RUN npm install
 
 EXPOSE 3000
+
 CMD ["npm", "start"]
