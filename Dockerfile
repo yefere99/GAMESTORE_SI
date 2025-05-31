@@ -2,6 +2,11 @@
 FROM cirrusci/flutter:stable AS flutter_build
 WORKDIR /app/frontend
 COPY frontend/ .
+COPY frontend/pubspec.yaml ./
+COPY frontend/pubspec.lock ./
+COPY frontend/lib ./lib
+COPY frontend/web ./web
+COPY frontend/assets ./assets
 RUN flutter pub get
 RUN flutter build web
 
