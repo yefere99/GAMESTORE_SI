@@ -1,10 +1,12 @@
-# Etapa 1: configurar Flutter manualmente
+# Etapa 1: construir Flutter Web manualmente con versión actualizada
 FROM dart:stable AS flutter_build
 
 # Instalar Flutter
 RUN git clone https://github.com/flutter/flutter.git /usr/local/flutter
 ENV PATH="/usr/local/flutter/bin:/usr/local/flutter/bin/cache/dart-sdk/bin:${PATH}"
-RUN flutter doctor
+
+# Verifica que Flutter funcione
+RUN flutter --version
 
 # Establecer directorio de trabajo
 WORKDIR /app/frontend
@@ -19,7 +21,7 @@ COPY frontend/web ./web
 RUN flutter pub get
 RUN flutter build web
 
-# Etapa 2: backend Node.js
+# Etapa 2: backend con Node.js
 FROM node:18
 
 WORKDIR /app
@@ -31,9 +33,10 @@ RUN mkdir -p /app/backend/src/uploads
 COPY backend/ ./backend
 COPY --from=flutter_build /app/frontend/build /app/backend/src/public
 
+# Instalar dependencias del backend
 WORKDIR /app/backend
 RUN npm install
 
-EXPOSE 8080
+EXPOSE 3000
 
 CMD ["node", "src/index.js"]
