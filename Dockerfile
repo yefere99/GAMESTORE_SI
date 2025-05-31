@@ -33,6 +33,6 @@ COPY --from=flutter_build /app/build/web /app/backend/src/public
 WORKDIR /app/backend
 RUN npm install
 
-EXPOSE 3000
+EXPOSE 8080
 
 CMD ["npm", "start"]
