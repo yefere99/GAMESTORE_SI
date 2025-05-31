@@ -1,4 +1,4 @@
 class Env {
-  static const String apiUrl = 'gamestoresi-production.up.railway.app'; 
+  static const String apiUrl = 'https://gamestoresi-production.up.railway.app/api'; 
 }
 
